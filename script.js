@@ -162,7 +162,7 @@ async function doSearch() {
     hideResult();
     setStatus(err.message || 'Failed to fetch weather.', true);
   }
-}
+
 
 searchBtn.addEventListener('click', doSearch);
 
@@ -170,4 +170,4 @@ cityInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     doSearch();
   }
-});
+});A

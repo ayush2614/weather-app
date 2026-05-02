@@ -1,4 +1,4 @@
-# 🌦 Mausam Aaj Ka (SkyCast)
+# 🌦 Mausam 
 
 A real-time weather web app that shows weather and place information for any city, town, or village.
 

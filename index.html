@@ -12,17 +12,14 @@
     <h1>मौसम_वाला</h1>
     <p class="lead">जाने अपने क्षेत्र का मौसम ....</p>
 
-    <!-- SEARCH -->
     <div class="search">
       <input id="city" type="search" placeholder="Search your Location...." />
       <button id="searchBtn" class="btn">Search</button>
     </div>
 
-    <!-- RESULT -->
     <section id="result" class="result hidden">
       <div class="row">
 
-        <!-- LEFT (WEATHER) -->
         <div class="left">
           <h2 id="cityName">—</h2>
 
@@ -34,7 +31,7 @@
             <div class="temp">
               <span id="temp">—</span><small>°C</small>
             </div>
-            <img id="icon" />
+            <img id="icon" alt="weather icon" />
           </div>
 
           <div class="stats">
@@ -45,10 +42,17 @@
           </div>
         </div>
 
+        <div class="right">
+          <div class="info-box">
+            <h3>About Place</h3>
+            <p id="placeInfo">Search a location to see details here.</p>
+          </div>
+        </div>
+
       </div>
     </section>
 
-
+    <div id="status">Enter and hit search</div>
   </main>
 
   <script src="script.js"></script>

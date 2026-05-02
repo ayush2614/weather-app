@@ -1,21 +1,30 @@
 let map;
 let marker;
 let selectedLocation = null;
+let searchTimer;
 
 const input = document.getElementById("locationInput");
 const suggestionsBox = document.getElementById("suggestions");
+const errorBox = document.getElementById("error");
 
-window.onload = function () {
+window.addEventListener("load", () => {
   map = L.map("map").setView([28.6139, 77.2090], 6);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap"
   }).addTo(map);
-};
 
-input.addEventListener("input", function () {
+  input.addEventListener("input", handleInput);
+
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      searchWeather();
+    }
+  });
+});
+
+async function handleInput() {
   const query = input.value.trim();
-
   selectedLocation = null;
 
   if (query.length < 3) {
@@ -23,21 +32,15 @@ input.addEventListener("input", function () {
     return;
   }
 
-  clearTimeout(window.searchTimer);
-
-  window.searchTimer = setTimeout(() => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
     getSuggestions(query);
   }, 500);
-});
+}
 
 async function getSuggestions(query) {
   try {
-    const url =
-      `https://nominatim.openstreetmap.org/search?` +
-      `q=${encodeURIComponent(query)}` +
-      `&format=json` +
-      `&addressdetails=1` +
-      `&limit=6`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=6&countrycodes=in`;
 
     const response = await fetch(url);
     const data = await response.json();
@@ -54,23 +57,22 @@ async function getSuggestions(query) {
       div.className = "suggestion-item";
       div.textContent = place.display_name;
 
-      div.onclick = function () {
+      div.addEventListener("click", () => {
         selectedLocation = place;
         input.value = place.display_name;
         suggestionsBox.innerHTML = "";
-      };
+        searchWeather();
+      });
 
       suggestionsBox.appendChild(div);
     });
-  } catch (error) {
-    suggestionsBox.innerHTML = "";
+  } catch (err) {
+    errorBox.textContent = "Location suggestion failed.";
   }
 }
 
 async function searchWeather() {
   const query = input.value.trim();
-  const errorBox = document.getElementById("error");
-
   errorBox.textContent = "";
 
   if (query === "") {
@@ -86,28 +88,24 @@ async function searchWeather() {
     }
 
     if (!location) {
-      errorBox.textContent = "Location not found. Try nearby town or add district/state name.";
+      errorBox.textContent = "Location not found. Try: village, district, state";
       return;
     }
 
-    const lat = parseFloat(location.lat);
-    const lon = parseFloat(location.lon);
+    const lat = Number(location.lat);
+    const lon = Number(location.lon);
 
     await getWeather(lat, lon, location);
     updateMap(lat, lon, location.display_name);
 
-  } catch (error) {
-    errorBox.textContent = "Something went wrong. Please try again.";
+  } catch (err) {
+    console.log(err);
+    errorBox.textContent = "Search failed. Check internet or try another location.";
   }
 }
 
 async function findLocation(query) {
-  const url =
-    `https://nominatim.openstreetmap.org/search?` +
-    `q=${encodeURIComponent(query)}` +
-    `&format=json` +
-    `&addressdetails=1` +
-    `&limit=1`;
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=1&countrycodes=in`;
 
   const response = await fetch(url);
   const data = await response.json();
@@ -121,9 +119,7 @@ async function findLocation(query) {
 
 async function getWeather(lat, lon, location) {
   const weatherUrl =
-    `https://api.open-meteo.com/v1/forecast?` +
-    `latitude=${lat}` +
-    `&longitude=${lon}` +
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
     `&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,precipitation` +
     `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum` +
     `&timezone=auto`;
@@ -192,10 +188,13 @@ function updateMap(lat, lon, name) {
 
   marker = L.marker([lat, lon]).addTo(map);
   marker.bindPopup(`<b>${name}</b>`).openPopup();
+
+  setTimeout(() => {
+    map.invalidateSize();
+  }, 300);
 }
 
 function useMyLocation() {
-  const errorBox = document.getElementById("error");
   errorBox.textContent = "";
 
   if (!navigator.geolocation) {
@@ -210,12 +209,11 @@ function useMyLocation() {
 
       const location = await reverseLocation(lat, lon);
 
-      if (location) {
-        input.value = location.display_name;
-        selectedLocation = location;
-        await getWeather(lat, lon, location);
-        updateMap(lat, lon, location.display_name);
-      }
+      input.value = location.display_name;
+      selectedLocation = location;
+
+      await getWeather(lat, lon, location);
+      updateMap(lat, lon, location.display_name);
     },
     function () {
       errorBox.textContent = "Location permission denied.";
@@ -224,12 +222,7 @@ function useMyLocation() {
 }
 
 async function reverseLocation(lat, lon) {
-  const url =
-    `https://nominatim.openstreetmap.org/reverse?` +
-    `lat=${lat}` +
-    `&lon=${lon}` +
-    `&format=json` +
-    `&addressdetails=1`;
+  const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`;
 
   const response = await fetch(url);
   return await response.json();
@@ -263,20 +256,13 @@ function getWeatherCondition(code) {
     61: "Slight rain",
     63: "Moderate rain",
     65: "Heavy rain",
-    66: "Freezing rain",
-    67: "Heavy freezing rain",
     71: "Slight snow",
     73: "Moderate snow",
     75: "Heavy snow",
-    77: "Snow grains",
     80: "Rain showers",
     81: "Moderate showers",
     82: "Heavy showers",
-    85: "Snow showers",
-    86: "Heavy snow showers",
-    95: "Thunderstorm",
-    96: "Thunderstorm with hail",
-    99: "Heavy thunderstorm with hail"
+    95: "Thunderstorm"
   };
 
   return conditions[code] || "Unknown weather";

@@ -170,4 +170,4 @@ cityInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     doSearch();
   }
-});
+})
